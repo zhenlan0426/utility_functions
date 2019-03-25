@@ -6,17 +6,28 @@ import numpy as np
 
 
 ''' functions related to fine-tuning pretrained model '''
+def gather_parameter_byName(name,model):
+    return [w for n,w in model.named_parameters() if name in n]
+
+def gather_parameter_nameList(nameList,model):
+    parameter = []
+    for name in nameList:
+        parameter += gather_parameter_byName(name,model)
+    return parameter
+
 def trainable_parameter(model):
     return [p for p in model.parameters() if p.requires_grad]
 
 def set_requires_grad(model, require_grad):
     if isinstance(model,(list,tuple)):
         for m in model:
-                for param in m.parameters():
-                    param.requires_grad = require_grad
+            set_requires_grad_paraList(m.parameters(),require_grad)
     else:
-        for param in model.parameters():
-            param.requires_grad = require_grad
+        set_requires_grad_paraList(model.parameters(),require_grad)
+
+def set_requires_grad_paraList(parameterList, require_grad):
+    for para in parameterList:
+        para.requires_grad = require_grad
             
 def fine_tune_pretrainedmodels(model, outDim):
     # works only for models in pretrainedmodels as it depends on its API
@@ -141,8 +152,6 @@ def predict(model,dataloader,to_numpy=True):
             return np.concatenate([model(data2cuda(data)).detach().numpy() for data in dataloader])
         else:
             return torch.cat([model(data2cuda(data)) for data in dataloader])
-
-
 
 
 
