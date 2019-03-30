@@ -110,6 +110,16 @@ def feature_extract_pretrainedmodels(model):
 def data2cuda(data):
     return [i.to('cuda:0') for i in data] if isinstance(data,(list,tuple)) else data.to('cuda:0')
 
+def HWC2CHW(np_array):
+    ndim = np_array.ndim 
+    if ndim == 4:
+        return np_array.transpose(0,3,1,2)
+    elif ndim == 3:
+        return np_array.transpose(2,0,1)
+    else:
+        print('wrong dims: {}'.format(ndim))
+        
+
 def fit(epochs, model, loss_func, opt, train_dl, valid_dl):
     # assume loss_func returns mean rather than sum
     since = time.time()
@@ -148,10 +158,8 @@ def predict(model,dataloader,to_numpy=True):
     # dataloader return Xs only
     model.eval()
     with torch.no_grad():
-        if to_numpy:
-            return np.concatenate([model(data2cuda(data)).detach().numpy() for data in dataloader])
-        else:
-            return torch.cat([model(data2cuda(data)) for data in dataloader])
+        out = torch.cat([model(data2cuda(data)) for data in dataloader])
+        return out.cpu().detach().numpy() if to_numpy else out
 
 
 
