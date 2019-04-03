@@ -3,7 +3,8 @@ from pretrainedmodels import utils
 import torch
 import time
 import numpy as np
-
+from torch.nn.utils import clip_grad_norm_,clip_grad_value_
+import copy
 
 ''' functions related to fine-tuning pretrained model '''
 def gather_parameter_byName(name,model):
@@ -120,13 +121,18 @@ def HWC2CHW(np_array):
         print('wrong dims: {}'.format(ndim))
         
 
-def fit(epochs, model, loss_func, opt, train_dl, valid_dl):
+def fit(epochs, model, loss_func, opt, train_dl, valid_dl,clip=0,clip_fun=clip_grad_value_,lossBest=1e6,patience=2):
     # assume loss_func returns mean rather than sum
+    # within patience number of time, do not save model
+    # if continue training, needs to pass in previous best val loss
     since = time.time()
+    best_model_wts = copy.deepcopy(model.state_dict())
     opt.zero_grad()
     train_batch = len(train_dl.dataset)//train_dl.batch_size
     val_batch = len(valid_dl.dataset)//valid_dl.batch_size
-    
+    if clip!=0:
+        paras = trainable_parameter(model)
+        
     for epoch in range(epochs):
         # training #
         model.train()
@@ -134,6 +140,8 @@ def fit(epochs, model, loss_func, opt, train_dl, valid_dl):
         for data in train_dl:
             loss = loss_func(model,data2cuda(data))
             loss.backward()
+            if clip!=0:
+                clip_fun(paras,clip)
             opt.step()
             opt.zero_grad()
             train_loss += loss.item()
@@ -141,7 +149,14 @@ def fit(epochs, model, loss_func, opt, train_dl, valid_dl):
         # evaluating #
         val_loss = evaluate(model,valid_dl,loss_func,val_batch)
         print('epoch:{}, train_loss:{}, val_loss:{}'.format(epoch,train_loss/train_batch,val_loss))
-    
+        
+        # save model
+        if val_loss<lossBest:
+            lossBest = val_loss
+            if epoch >= patience:
+                best_model_wts = copy.deepcopy(model.state_dict())
+                
+    model.load_state_dict(best_model_wts)    
     time_elapsed = time.time() - since
     print('Training completed in {}s'.format(time_elapsed))
     return model
