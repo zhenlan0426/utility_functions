@@ -14,15 +14,24 @@ from functools import partial
 from torch.nn.functional import glu
 
 def ConvBatchRelu(in_channel,out_channel,kernel_size,**kwargs):
+    kwargs['bias'] = False
     return Sequential(nn.Conv2d(in_channel,out_channel,kernel_size,**kwargs),
                        nn.BatchNorm2d(out_channel),
                        nn.ReLU(inplace=True))
     
 def ConvBatchRelu1D(in_channel,out_channel,kernel_size,**kwargs):
+    kwargs['bias'] = False
     return Sequential(nn.Conv1d(in_channel,out_channel,kernel_size,**kwargs),
                        nn.BatchNorm1d(out_channel),
                        nn.ReLU(inplace=True))
     
+def ConvBatchLeaky1D(in_channel,out_channel,kernel_size,**kwargs):
+    kwargs['bias'] = False
+    return Sequential(nn.Conv1d(in_channel,out_channel,kernel_size,**kwargs),
+                       nn.BatchNorm1d(out_channel),
+                       nn.LeakyReLU(0.1,inplace=True))    
+    
+
 class LambdaLayer(nn.Module):
     def __init__(self, lambda_):
         super(LambdaLayer, self).__init__()
@@ -41,7 +50,7 @@ class GRU_NCL(GRU):
         
     def forward(self,input_,h_0=None):
         output, h_n = super().forward(input_.transpose(1,2),h_0)
-        return (output.transpose(1,2), h_n) if self.returnH else output.transpose(1,2)
+        return (output.transpose(1,2), h_n.transpose(0,1)) if self.returnH else output.transpose(1,2)
     
     
 def ConvDropoutGLU(in_channel,out_channel,kernel_size,**kwargs):

@@ -3,8 +3,9 @@ from pretrainedmodels import utils
 import torch
 import time
 import numpy as np
-from torch.nn.utils import clip_grad_norm_,clip_grad_value_
+from torch.nn.utils import clip_grad_value_
 import copy
+from torch.utils.data import Dataset
 
 ''' functions related to fine-tuning pretrained model '''
 def gather_parameter_byName(name,model):
@@ -178,7 +179,15 @@ def predict(model,dataloader,to_numpy=True):
 
 
 
+class numpyArray(Dataset):
+    def __init__(self,npArray):
+        self.npArray = npArray
+        
+    def __len__(self):
+        return self.npArray.shape[0]
 
+    def __getitem__(self, idx):
+        return self.npArray[idx]
 
 
 
