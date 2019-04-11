@@ -48,6 +48,16 @@ def feature_extract_pretrainedmodels(model):
     set_requires_grad(model,False)
     return model
 
+def differential_lr(model,base_lr,factor=2.6):
+    # assume model is instance of Sequential
+    # lr decrease by factor as you go to early layer
+    # return value be consumed by optimizer
+    # Note iterate over direct children
+    filter_list = [m for m in model.children() if len(trainable_parameter(m))]
+    length = len(filter_list)
+    return [{"params": trainable_parameter(m), "lr": base_lr/(factor**(length-i))} 
+            for i,m in enumerate(filter_list)]
+    
 #''' functions related to data pipeline '''
 #
 #to_tensor = torch.from_numpy
@@ -178,6 +188,7 @@ def predict(model,dataloader,to_numpy=True):
         return out.cpu().detach().numpy() if to_numpy else out
 
 
+''' data pipeline '''
 
 class numpyArray(Dataset):
     def __init__(self,npArray):
@@ -189,8 +200,26 @@ class numpyArray(Dataset):
     def __getitem__(self, idx):
         return self.npArray[idx]
 
+class mixupWrapper(Dataset):
+    """apply mixup over dataset
+       Assume dataset return x,y
+    """
+    def __init__(self, dataset,alpha=1e-1):
+        # dataset is Dataset instance
+        # bigger alpha means more mix
+        self.dataset = dataset
+        self.n = len(dataset)
+        self.alpha = alpha
+        
+    def __len__(self):
+        return self.n
 
-
+    def __getitem__(self, idx):
+        x1,y1 = self.dataset[idx]
+        x2,y2 = self.dataset[np.random.randint(self.n)]
+        w1 = np.random.beta(self.alpha,self.alpha)
+        w2 = 1-w1
+        return np.float32(w1*x1+w2*x2),np.float32(w1*y1+w2*y2)
 
 
 
