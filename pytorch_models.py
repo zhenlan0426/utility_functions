@@ -8,16 +8,27 @@ Created on Sun Mar 24 14:39:39 2019
 
 import torch
 import torch.nn as nn
-from torch.nn import Sequential,Dropout,Dropout2d
+from torch.nn import Sequential,Linear
 from torch.nn import GRU
 from functools import partial
 from torch.nn.functional import glu
+
+
+def LinearLeaky(in_features, out_features, bias=True):
+    return Sequential(Linear(in_features,out_features,bias),
+                      nn.LeakyReLU(inplace=True))
 
 def ConvBatchRelu(in_channel,out_channel,kernel_size,**kwargs):
     kwargs['bias'] = False
     return Sequential(nn.Conv2d(in_channel,out_channel,kernel_size,**kwargs),
                        nn.BatchNorm2d(out_channel),
                        nn.ReLU(inplace=True))
+    
+def ConvBatchLeaky(in_channel,out_channel,kernel_size,**kwargs):
+    kwargs['bias'] = False
+    return Sequential(nn.Conv2d(in_channel,out_channel,kernel_size,**kwargs),
+                       nn.BatchNorm2d(out_channel),
+                       nn.LeakyReLU(inplace=True))
     
 def ConvBatchRelu1D(in_channel,out_channel,kernel_size,**kwargs):
     kwargs['bias'] = False
@@ -30,14 +41,18 @@ def ConvBatchLeaky1D(in_channel,out_channel,kernel_size,**kwargs):
     return Sequential(nn.Conv1d(in_channel,out_channel,kernel_size,**kwargs),
                        nn.BatchNorm1d(out_channel),
                        nn.LeakyReLU(0.1,inplace=True))    
-
+    
 def ConvGLU(in_channel,out_channel,kernel_size,**kwargs):
+    kwargs['bias'] = False
     return Sequential(nn.Conv1d(in_channel,2*out_channel,kernel_size,**kwargs),
-                       LambdaLayer(partial(glu,dim=1)))
+                       LambdaLayer(partial(glu,dim=1)),
+                       nn.BatchNorm1d(out_channel))
 
 def Conv2dGLU(in_channel,out_channel,kernel_size,**kwargs):
+    kwargs['bias'] = False    
     return Sequential(nn.Conv2d(in_channel,2*out_channel,kernel_size,**kwargs),
-                       LambdaLayer(partial(glu,dim=1)))    
+                       LambdaLayer(partial(glu,dim=1)),
+                       nn.BatchNorm1d(out_channel))    
     
 class LambdaLayer(nn.Module):
     def __init__(self, lambda_):
