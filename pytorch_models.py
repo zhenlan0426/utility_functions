@@ -52,6 +52,15 @@ class GRU_NCL(GRU):
         output, h_n = super().forward(input_.transpose(1,2),h_0)
         return (output.transpose(1,2), h_n.transpose(0,1)) if self.returnH else output.transpose(1,2)
     
+def ConvBatchGLU(in_channel,out_channel,kernel_size,**kwargs):
+    return Sequential(nn.Conv1d(in_channel,2*out_channel,kernel_size,**kwargs),
+                       LambdaLayer(partial(glu,dim=1)),
+                       nn.BatchNorm1d(out_channel))
+
+def ConvBatch2dGLU(in_channel,out_channel,kernel_size,**kwargs):
+    return Sequential(nn.Conv2d(in_channel,2*out_channel,kernel_size,**kwargs),
+                       LambdaLayer(partial(glu,dim=1)),
+                       nn.BatchNorm2d(out_channel))    
     
 def ConvDropoutGLU(in_channel,out_channel,kernel_size,**kwargs):
     return Sequential(nn.Conv1d(in_channel,2*out_channel,kernel_size,**kwargs),
@@ -60,9 +69,9 @@ def ConvDropoutGLU(in_channel,out_channel,kernel_size,**kwargs):
                        Dropout())
 
 def ConvDropout2dGLU(in_channel,out_channel,kernel_size,**kwargs):
-    return Sequential(nn.Conv1d(in_channel,2*out_channel,kernel_size,**kwargs),
+    return Sequential(nn.Conv2d(in_channel,2*out_channel,kernel_size,**kwargs),
                        LambdaLayer(partial(glu,dim=1)),
-                       nn.BatchNorm1d(out_channel),
+                       nn.BatchNorm2d(out_channel),
                        Dropout2d())
 
 class skipConnectWrap1d(nn.Module):
