@@ -31,32 +31,14 @@ def ConvBatchLeaky1D(in_channel,out_channel,kernel_size,**kwargs):
                        nn.BatchNorm1d(out_channel),
                        nn.LeakyReLU(0.1,inplace=True))    
 
-def ConvBatchGLU(in_channel,out_channel,kernel_size,**kwargs):
-    kwargs['bias'] = False
+def ConvGLU(in_channel,out_channel,kernel_size,**kwargs):
     return Sequential(nn.Conv1d(in_channel,2*out_channel,kernel_size,**kwargs),
-                       LambdaLayer(partial(glu,dim=1)),
-                       nn.BatchNorm1d(out_channel))
+                       LambdaLayer(partial(glu,dim=1)))
 
-def ConvBatch2dGLU(in_channel,out_channel,kernel_size,**kwargs):
-    kwargs['bias'] = False
+def Conv2dGLU(in_channel,out_channel,kernel_size,**kwargs):
     return Sequential(nn.Conv2d(in_channel,2*out_channel,kernel_size,**kwargs),
-                       LambdaLayer(partial(glu,dim=1)),
-                       nn.BatchNorm2d(out_channel))    
+                       LambdaLayer(partial(glu,dim=1)))    
     
-def ConvDropoutGLU(in_channel,out_channel,kernel_size,**kwargs):
-    kwargs['bias'] = False
-    return Sequential(nn.Conv1d(in_channel,2*out_channel,kernel_size,**kwargs),
-                       LambdaLayer(partial(glu,dim=1)),
-                       nn.BatchNorm1d(out_channel),
-                       Dropout())
-
-def ConvDropout2dGLU(in_channel,out_channel,kernel_size,**kwargs):
-    kwargs['bias'] = False
-    return Sequential(nn.Conv2d(in_channel,2*out_channel,kernel_size,**kwargs),
-                       LambdaLayer(partial(glu,dim=1)),
-                       nn.BatchNorm2d(out_channel),
-                       Dropout2d())    
-
 class LambdaLayer(nn.Module):
     def __init__(self, lambda_):
         super(LambdaLayer, self).__init__()
