@@ -132,7 +132,7 @@ def HWC2CHW(np_array):
         print('wrong dims: {}'.format(ndim))
         
 
-def fit(epochs, model, loss_func, opt, train_dl, valid_dl,clip=0,clip_fun=clip_grad_value_,lossBest=1e6,patience=2):
+def fit(epochs, model, loss_func, opt, train_dl, valid_dl,clip=0,clip_fun=clip_grad_value_,lossBest=1e6,patience=0):
     # assume loss_func returns mean rather than sum
     # within patience number of time, do not save model
     # if continue training, needs to pass in previous best val loss
