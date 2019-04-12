@@ -41,7 +41,13 @@ def ConvBatchLeaky1D(in_channel,out_channel,kernel_size,**kwargs):
     return Sequential(nn.Conv1d(in_channel,out_channel,kernel_size,**kwargs),
                        nn.BatchNorm1d(out_channel),
                        nn.LeakyReLU(0.1,inplace=True))    
-    
+
+def ConvBatchRRelu1D(in_channel,out_channel,kernel_size,**kwargs):
+    kwargs['bias'] = False
+    return Sequential(nn.Conv1d(in_channel,out_channel,kernel_size,**kwargs),
+                       nn.BatchNorm1d(out_channel),
+                       nn.RReLU(inplace=True))
+
 def ConvGLU(in_channel,out_channel,kernel_size,**kwargs):
     kwargs['bias'] = False
     return Sequential(nn.Conv1d(in_channel,2*out_channel,kernel_size,**kwargs),
