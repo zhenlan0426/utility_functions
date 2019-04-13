@@ -13,7 +13,14 @@ from torch.nn import GRU
 from functools import partial
 from torch.nn.functional import glu
 
+class biasLayer(nn.Module):
+    def __init__(self,dims):
+        super().__init__()
+        self.bias = nn.Parameter(torch.zeros(dims))
 
+    def forward(self, x):
+        return x + self.bias
+    
 def LinearLeaky(in_features, out_features, bias=True):
     return Sequential(Linear(in_features,out_features,bias),
                       nn.LeakyReLU(inplace=True))
@@ -40,14 +47,14 @@ def ConvBatchLeaky1D(in_channel,out_channel,kernel_size,**kwargs):
     kwargs['bias'] = False
     return Sequential(nn.Conv1d(in_channel,out_channel,kernel_size,**kwargs),
                        nn.BatchNorm1d(out_channel),
-                       nn.LeakyReLU(0.1,inplace=True))    
-
+                       nn.LeakyReLU(0.1,inplace=True))   
+    
 def ConvBatchRRelu1D(in_channel,out_channel,kernel_size,**kwargs):
     kwargs['bias'] = False
     return Sequential(nn.Conv1d(in_channel,out_channel,kernel_size,**kwargs),
                        nn.BatchNorm1d(out_channel),
-                       nn.RReLU(inplace=True))
-
+                       nn.RReLU(inplace=True))    
+    
 def ConvGLU(in_channel,out_channel,kernel_size,**kwargs):
     kwargs['bias'] = False
     return Sequential(nn.Conv1d(in_channel,2*out_channel,kernel_size,**kwargs),
@@ -58,7 +65,7 @@ def Conv2dGLU(in_channel,out_channel,kernel_size,**kwargs):
     kwargs['bias'] = False    
     return Sequential(nn.Conv2d(in_channel,2*out_channel,kernel_size,**kwargs),
                        LambdaLayer(partial(glu,dim=1)),
-                       nn.BatchNorm1d(out_channel))    
+                       nn.BatchNorm2d(out_channel))    
     
 class LambdaLayer(nn.Module):
     def __init__(self, lambda_):
