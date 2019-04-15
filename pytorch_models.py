@@ -279,10 +279,9 @@ class SincConv_fast(nn.Module):
 
 class SincConv_fast2(nn.Module):
     """Sinc-based convolution
+    Differ from the SincConv_fast in that it can take multiple input channels.
     Parameters
     ----------
-    in_channels : `int`
-        Number of input channels. Must be 1.
     out_channels : `int`
         Number of filters.
     kernel_size : `int`
@@ -291,12 +290,6 @@ class SincConv_fast2(nn.Module):
         Sample rate. Defaults to 16000.
     Usage
     -----
-    See `torch.nn.Conv1d`
-    Reference
-    ---------
-    Mirco Ravanelli, Yoshua Bengio,
-    "Speaker Recognition from raw waveform with SincNet".
-    https://arxiv.org/abs/1808.00158
     """
 
     @staticmethod
