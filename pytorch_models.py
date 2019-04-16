@@ -13,7 +13,6 @@ from torch.nn import Sequential,Linear
 from torch.nn import GRU
 from functools import partial
 from torch.nn.functional import glu
-from torch.autograd import Variable
 import math
 import numpy as np
 
@@ -24,6 +23,12 @@ class biasLayer(nn.Module):
 
     def forward(self, x):
         return x + self.bias
+
+def SincBatchLeaky(in_channel,out_channel,kernel_size,**kwargs):
+    kwargs['bias'] = False
+    return Sequential(SincConv_fast2(in_channel,out_channel,kernel_size,**kwargs),
+                       nn.BatchNorm1d(out_channel),
+                       nn.LeakyReLU(inplace=True))
     
 def LinearLeaky(in_features, out_features, bias=True):
     return Sequential(Linear(in_features,out_features,bias),
@@ -125,24 +130,21 @@ class ConcatWrap1d(nn.Module):
         out = self.model(x)
         return torch.cat([out,x],1)      
 
-def flip(x, dim):
-    xsize = x.size()
-    dim = x.dim() + dim if dim < 0 else dim
-    x = x.contiguous()
-    x = x.view(-1, *xsize[dim:])
-    x = x.view(x.size(0), x.size(1), -1)[:, getattr(torch.arange(x.size(1)-1, 
-                      -1, -1), ('cpu','cuda')[x.is_cuda])().long(), :]
-    return x.view(xsize)
 
+class weightedAverage(nn.Module):
+    # d is number of models. Calculated w1*f1(x) + w2*f2(x)...
+    def __init__(self,d):
+        super().__init__()
+        self.d = d
+        self.score = nn.Parameter(torch.rand(d)/2)
 
-def sinc(band,t_right):
-    y_right= torch.sin(2*math.pi*band*t_right)/(2*math.pi*band*t_right)
-    y_left= flip(y_right,0)
-
-    y=torch.cat([y_left,Variable(torch.ones(1)).cuda(),y_right])
-
-    return y
-    
+    def forward(self,xs):
+        # xs is of shape (n,...,d), where d is number of model to average
+        weight = self.get_weight()
+        return torch.matmul(xs,weight)  
+   
+    def get_weight(self):
+        return F.softmax(self.score,0)
 
 class SincConv_fast(nn.Module):
     """Sinc-based convolution
@@ -303,7 +305,7 @@ class SincConv_fast2(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, sample_rate=16000, 
                  stride=1, padding=0, dilation=1, bias=False, groups=1, min_low_hz=50, min_band_hz=50):
 
-        super(SincConv_fast,self).__init__()
+        super().__init__()
 
         self.out_channels = out_channels
         self.in_channels = in_channels
@@ -348,8 +350,6 @@ class SincConv_fast2(nn.Module):
         n = (self.kernel_size - 1) / 2.0
         self.n_ = 2*math.pi*torch.arange(-n, 0) / self.sample_rate # Due to symmetry, I only need half of the time axes
 
- 
-
 
     def forward(self, waveforms):
         """
@@ -391,4 +391,4 @@ class SincConv_fast2(nn.Module):
 
         return F.conv1d(waveforms, self.filters, stride=self.stride,
                         padding=self.padding, dilation=self.dilation,
-                         bias=None, groups=1)    
+                         bias=None, groups=1)      

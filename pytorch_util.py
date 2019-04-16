@@ -132,15 +132,17 @@ def HWC2CHW(np_array):
         print('wrong dims: {}'.format(ndim))
         
 
-def fit(epochs, model, loss_func, opt, train_dl, valid_dl,clip=0,clip_fun=clip_grad_value_,lossBest=1e6,patience=0):
+def fit(epochs, model, loss_func, opt, train_dl, valid_dl=None,clip=0,clip_fun=clip_grad_value_,lossBest=1e6,patience=0):
     # assume loss_func returns mean rather than sum
     # within patience number of time, do not save model
     # if continue training, needs to pass in previous best val loss
     since = time.time()
-    best_model_wts = copy.deepcopy(model.state_dict())
     opt.zero_grad()
     train_batch = len(train_dl.dataset)//train_dl.batch_size
-    val_batch = len(valid_dl.dataset)//valid_dl.batch_size
+    if valid_dl is not None:
+        val_batch = len(valid_dl.dataset)//valid_dl.batch_size
+        best_model_wts = copy.deepcopy(model.state_dict())
+        
     if clip!=0:
         paras = trainable_parameter(model)
         
@@ -158,16 +160,20 @@ def fit(epochs, model, loss_func, opt, train_dl, valid_dl,clip=0,clip_fun=clip_g
             train_loss += loss.item()
         
         # evaluating #
-        val_loss = evaluate(model,valid_dl,loss_func,val_batch)
-        print('epoch:{}, train_loss:{}, val_loss:{}'.format(epoch,train_loss/train_batch,val_loss))
+        if valid_dl is not None:
+            val_loss = evaluate(model,valid_dl,loss_func,val_batch)
+            print('epoch:{}, train_loss:{}, val_loss:{}'.format(epoch,train_loss/train_batch,val_loss))
+        else:
+            print('epoch:{}, train_loss:{}'.format(epoch,train_loss/train_batch))
         
         # save model
-        if val_loss<lossBest:
-            lossBest = val_loss
-            if epoch >= patience:
-                best_model_wts = copy.deepcopy(model.state_dict())
+        if valid_dl is not None:
+            if val_loss<lossBest:
+                lossBest = val_loss
+                if epoch >= patience:
+                    best_model_wts = copy.deepcopy(model.state_dict())
                 
-    model.load_state_dict(best_model_wts)    
+    if valid_dl is not None: model.load_state_dict(best_model_wts)    
     time_elapsed = time.time() - since
     print('Training completed in {}s'.format(time_elapsed))
     return model
@@ -221,6 +227,10 @@ class mixupWrapper(Dataset):
         w2 = 1-w1
         return np.float32(w1*x1+w2*x2),np.float32(w1*y1+w2*y2)
 
-
+def wrapTrainGen2TestGen(trainGen,arg=0):
+    # given a gen that yields x,y..., yield the first arg
+    # turn training gen into testing gen for prediction
+    for data in iter(trainGen):
+        yield data[arg]
 
 
