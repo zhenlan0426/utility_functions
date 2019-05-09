@@ -16,6 +16,24 @@ from torch.nn.functional import glu
 import math
 import numpy as np
 
+class squeeze_excitation(nn.Module):
+    # expect inputs of shape (N,C,L) or (N,C,H,W)
+    def __init__(self, c_shape, mid_shape,is2D=True):
+        super().__init__()
+        self.is2D = is2D
+        self.linear = nn.Sequential(nn.Linear(c_shape,mid_shape, bias=False),
+                                    nn.ReLU(inplace=True),
+                                    nn.Linear(mid_shape,c_shape, bias=False),
+                                    nn.Sigmoid())
+    def forward(self, x):
+        if self.is2D:
+            out = torch.mean(x,2)
+            out = self.linear(out).unsqueeze(2)
+        else:
+            out = torch.mean(x,(2,3))
+            out = self.linear(out).unsqueeze(2).unsqueeze(2)         
+        return out * x
+    
 class biasLayer(nn.Module):
     def __init__(self,dims):
         super().__init__()
