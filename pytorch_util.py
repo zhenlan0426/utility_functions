@@ -131,17 +131,25 @@ def HWC2CHW(np_array):
     else:
         print('wrong dims: {}'.format(ndim))
         
-
+def worker_init_fn(worker_id):                                                          
+    np.random.seed(np.random.get_state()[1][0] + worker_id)
+    
 def fit(epochs, model, loss_func, opt, train_dl, valid_dl=None,clip=0,clip_fun=clip_grad_value_,lossBest=1e6,patience=0):
     # assume loss_func returns mean rather than sum
     # within patience number of time, do not save model
     # if continue training, needs to pass in previous best val loss
+    # if lossBest is None, do not save model
     since = time.time()
     opt.zero_grad()
-    train_batch = len(train_dl.dataset)//train_dl.batch_size
+    train_batch = len(train_dl.dataset)//(train_dl.batch_size if \
+                                          train_dl.batch_size is not None else \
+                                          train_dl.batch_sampler.batch_size)
     if valid_dl is not None:
-        val_batch = len(valid_dl.dataset)//valid_dl.batch_size
-        best_model_wts = copy.deepcopy(model.state_dict())
+        val_batch = len(valid_dl.dataset)//(valid_dl.batch_size if \
+                                            valid_dl.batch_size is not None else \
+                                            valid_dl.batch_sampler.batch_size)
+        if lossBest is not None:
+            best_model_wts = copy.deepcopy(model.state_dict())
         
     if clip!=0:
         paras = trainable_parameter(model)
@@ -149,6 +157,7 @@ def fit(epochs, model, loss_func, opt, train_dl, valid_dl=None,clip=0,clip_fun=c
     for epoch in range(epochs):
         # training #
         model.train()
+        np.random.seed()
         train_loss = 0
         for data in train_dl:
             loss = loss_func(model,data2cuda(data))
@@ -167,13 +176,13 @@ def fit(epochs, model, loss_func, opt, train_dl, valid_dl=None,clip=0,clip_fun=c
             print('epoch:{}, train_loss:{}'.format(epoch,train_loss/train_batch))
         
         # save model
-        if valid_dl is not None:
+        if (valid_dl is not None) and (lossBest is not None):
             if val_loss<lossBest:
                 lossBest = val_loss
                 if epoch >= patience:
                     best_model_wts = copy.deepcopy(model.state_dict())
                 
-    if valid_dl is not None: model.load_state_dict(best_model_wts)    
+    if (valid_dl is not None) and (lossBest is not None): model.load_state_dict(best_model_wts)    
     time_elapsed = time.time() - since
     print('Training completed in {}s'.format(time_elapsed))
     return model
