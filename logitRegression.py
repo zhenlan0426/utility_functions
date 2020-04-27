@@ -11,6 +11,8 @@ from sklearn.linear_model import LogisticRegression
 import numpy as np
 
 class continous2weight(object):
+    ''' this class allow estimator that only takes in {0,1} to be fitted with tgt in [0,1]
+    '''
     @staticmethod
     def convert2weight(X,y,weight):
         # y is in [0,1]
@@ -23,9 +25,18 @@ class continous2weight(object):
         y = np.concatenate([np.ones_like(y),np.zeros_like(y)],0)
         return X,y,weight
     
-class LogitRegession(LogisticRegression,continous2weight):
     def fit(self, X, y, sample_weight=None):
         X, y, sample_weight = self.convert2weight(X,y,sample_weight)
         super().fit(X, y, sample_weight)
         
-        
+class LogitRegession(continous2weight,LogisticRegression):pass
+    
+
+if __name__ == '__main__':
+    X = np.random.rand(1000,10)
+    beta = np.random.rand(10)
+    p = X@beta
+    p = 1/(1+np.exp(-p))
+    model = LogitRegession(C=1e5)
+    model.fit(X,p)
+    assert np.allclose(model.coef_,beta,atol=1e-4)
