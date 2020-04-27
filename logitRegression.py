@@ -8,6 +8,7 @@ Created on Mon Apr 27 11:11:21 2020
 
 
 from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
 import numpy as np
 
 class continous2weight(object):
@@ -27,16 +28,16 @@ class continous2weight(object):
     
     def fit(self, X, y, sample_weight=None):
         X, y, sample_weight = self.convert2weight(X,y,sample_weight)
-        super().fit(X, y, sample_weight)
+        return super().fit(X, y, sample_weight)
         
 class LogitRegession(continous2weight,LogisticRegression):pass
-    
+class LogitDecisionTree(continous2weight, DecisionTreeClassifier): pass
 
 if __name__ == '__main__':
     X = np.random.rand(1000,10)
     beta = np.random.rand(10)
     p = X@beta
     p = 1/(1+np.exp(-p))
-    model = LogitRegession(C=1e5)
-    model.fit(X,p)
-    assert np.allclose(model.coef_,beta,atol=1e-4)
+    #model = LogitRegession(C=1e5)
+    model = LogitDecisionTree(max_depth=16)
+    print(np.max(np.abs(model.fit(X,p).predict_proba(X)[:,1]-p)))
